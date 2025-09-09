@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "929086229458",
+    "project_id": "courseschedulemanager",
+    "storage_bucket": "courseschedulemanager.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:929086229458:android:2edd7700b4898a6da4d60b",
+        "android_client_info": {
+          "package_name": "com.schedulemanager.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA6LHweStsp5Anp875SUeQ3drKLgXlSYns"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
