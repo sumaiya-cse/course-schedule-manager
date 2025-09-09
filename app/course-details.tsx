@@ -1,9 +1,5 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import {
-  deleteDoc,
-  doc,
-  updateDoc,
-} from "firebase/firestore";
+import { deleteDoc, doc, updateDoc } from "firebase/firestore";
 import React, { useState } from "react";
 import {
   Alert,
@@ -13,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import tw from "twrnc";
 import { db } from "../firebase";
 
@@ -20,41 +17,56 @@ export default function CourseDetails() {
   const router = useRouter();
   const params = useLocalSearchParams();
 
-  const [editing, setEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [courseName, setCourseName] = useState(params.courseName as string);
   const [courseCode, setCourseCode] = useState(params.courseCode as string);
   const [instructor, setInstructor] = useState(params.instructor as string);
   const [location, setLocation] = useState(params.location as string);
+  const [classDate, setClassDate] = useState(params.classDate as string);
   const [startTime, setStartTime] = useState(params.startTime as string);
   const [endTime, setEndTime] = useState(params.endTime as string);
 
-  const handleUpdateCourse = async () => {
-    if (!courseName || !courseCode || !instructor || !location || !startTime || !endTime) {
-      Alert.alert("Error", "All fields are required");
+  const handleUpdate = async () => {
+    if (!courseName || !courseCode || !instructor || !location || !classDate || !startTime || !endTime) {
+      Toast.show({
+        type: "error",
+        text1: "Missing Fields",
+        text2: "Please fill all the fields before saving.",
+      });
       return;
     }
 
     try {
-      const docRef = doc(db, "courses", params.id as string);
-      await updateDoc(docRef, {
+      const courseRef = doc(db, "courses", params.id as string);
+      await updateDoc(courseRef, {
         courseName,
         courseCode,
         instructor,
         location,
+        classDate,
         startTime,
         endTime,
       });
 
-      Alert.alert("Success", "Course updated successfully!", [
-        { text: "OK", onPress: () => router.back() },
-      ]);
+      Toast.show({
+        type: "success",
+        text1: "Course Updated",
+        text2: "The course details have been updated successfully.",
+      });
+
+      setIsEditing(false);
+      router.back();
     } catch (error) {
       console.error("Error updating course:", error);
-      Alert.alert("Error", "Failed to update course.");
+      Toast.show({
+        type: "error",
+        text1: "Update Failed",
+        text2: "Something went wrong. Please try again.",
+      });
     }
   };
 
-  const handleDeleteCourse = async () => {
+  const handleDelete = () => {
     Alert.alert(
       "Delete Course",
       "Are you sure you want to delete this course?",
@@ -65,14 +77,23 @@ export default function CourseDetails() {
           style: "destructive",
           onPress: async () => {
             try {
-              const docRef = doc(db, "courses", params.id as string);
-              await deleteDoc(docRef);
-              Alert.alert("Deleted", "Course deleted successfully!", [
-                { text: "OK", onPress: () => router.back() },
-              ]);
+              const courseRef = doc(db, "courses", params.id as string);
+              await deleteDoc(courseRef);
+
+              Toast.show({
+                type: "success",
+                text1: "Course Deleted",
+                text2: "The course has been removed successfully.",
+              });
+
+              router.back();
             } catch (error) {
               console.error("Error deleting course:", error);
-              Alert.alert("Error", "Failed to delete course.");
+              Toast.show({
+                type: "error",
+                text1: "Delete Failed",
+                text2: "Could not delete the course. Try again.",
+              });
             }
           },
         },
@@ -81,109 +102,105 @@ export default function CourseDetails() {
   };
 
   return (
-    <ScrollView
-      contentContainerStyle={tw`flex-grow p-6 bg-slate-100`}
-    >
-      <View style={tw`bg-white p-5 rounded-xl shadow-lg`}>
-        <Text style={tw`text-2xl font-bold text-black text-center mb-6`}>
-          {editing ? "Edit Course" : "Course Details"}
+    <ScrollView style={tw`flex-1 bg-gray-100`}>
+      <View style={tw`bg-white rounded-xl shadow p-6 m-4`}>
+        <Text style={tw`text-2xl font-bold text-gray-800 mb-4`}>
+          {isEditing ? "Edit Course" : courseName}
         </Text>
 
-        {/* Input Fields */}
-        {[
-          {
-            label: "Course Name",
-            value: courseName,
-            setter: setCourseName,
-            editable: editing,
-          },
-          {
-            label: "Course Code",
-            value: courseCode,
-            setter: setCourseCode,
-            editable: editing,
-          },
-          {
-            label: "Instructor",
-            value: instructor,
-            setter: setInstructor,
-            editable: editing,
-          },
-          {
-            label: "Location",
-            value: location,
-            setter: setLocation,
-            editable: editing,
-          },
-          {
-            label: "Start Time",
-            value: startTime,
-            setter: setStartTime,
-            editable: editing,
-          },
-          {
-            label: "End Time",
-            value: endTime,
-            setter: setEndTime,
-            editable: editing,
-          },
-        ].map((field, index) => (
-          <View key={index} style={tw`mb-4`}>
-            <Text style={tw`text-black mb-2`}>{field.label}</Text>
-            <TextInput
-              style={tw`bg-gray-200 border border-gray-300 rounded-lg p-3 text-black`}
-              value={field.value}
-              editable={field.editable}
-              onChangeText={field.setter}
-            />
-          </View>
-        ))}
+        {/* Editable Fields */}
+        {isEditing ? (
+          <>
+            {[ 
+              { label: "Course Name", value: courseName, setter: setCourseName },
+              { label: "Course Code", value: courseCode, setter: setCourseCode },
+              { label: "Instructor", value: instructor, setter: setInstructor },
+              { label: "Location", value: location, setter: setLocation },
+              { label: "Class Date", value: classDate, setter: setClassDate },
+              { label: "Start Time", value: startTime, setter: setStartTime },
+              { label: "End Time", value: endTime, setter: setEndTime },
+            ].map((field, index) => (
+              <View key={index} style={tw`mb-4`}>
+                <Text style={tw`text-gray-700 font-semibold mb-1`}>
+                  {field.label}
+                </Text>
+                <TextInput
+                  style={tw`bg-gray-200 p-3 rounded-lg text-black`}
+                  value={field.value}
+                  onChangeText={field.setter}
+                  placeholder={field.label}
+                  placeholderTextColor="#888"
+                />
+              </View>
+            ))}
 
-        {/* Buttons */}
-        <View style={tw`flex-row justify-between mt-4`}>
-          {!editing ? (
-            <>
+            <View style={tw`flex-row justify-between mt-4`}>
               <TouchableOpacity
-                style={tw`bg-blue-600 px-5 py-3 rounded-full flex-1 mr-2`}
-                onPress={() => setEditing(true)}
+                onPress={() => setIsEditing(false)}
+                style={tw`bg-gray-400 px-4 py-3 rounded-lg flex-1 mr-2`}
               >
-                <Text style={tw`text-white font-semibold text-center`}>
-                  Edit
-                </Text>
+                <Text style={tw`text-white text-center font-bold`}>Cancel</Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleUpdate}
+                style={tw`bg-green-600 px-4 py-3 rounded-lg flex-1 ml-2`}
+              >
+                <Text style={tw`text-white text-center font-bold`}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        ) : (
+          <>
+            {/* Displaying Details */}
+            <Text style={tw`text-gray-700 text-base mb-2`}>
+              📘 Course Code: {courseCode}
+            </Text>
+            <Text style={tw`text-gray-700 text-base mb-2`}>
+              👨‍🏫 Instructor: {instructor}
+            </Text>
+            <Text style={tw`text-gray-700 text-base mb-2`}>
+              🏫 Location: {location}
+            </Text>
+            <Text style={tw`text-gray-700 text-base mb-2`}>
+              📅 Date: {classDate}
+            </Text>
+            <Text style={tw`text-gray-700 text-base mb-2`}>
+              🕒 Time: {startTime} – {endTime}
+            </Text>
 
+            {/* Edit & Delete Buttons */}
+            <View style={tw`flex-row justify-between mt-6`}>
               <TouchableOpacity
-                style={tw`bg-red-600 px-5 py-3 rounded-full flex-1 ml-2`}
-                onPress={handleDeleteCourse}
+                onPress={() => setIsEditing(true)}
+                style={tw`bg-blue-600 px-4 py-3 rounded-lg flex-1 mr-2`}
               >
-                <Text style={tw`text-white font-semibold text-center`}>
-                  Delete
-                </Text>
+                <Text style={tw`text-white text-center font-bold`}>Edit</Text>
               </TouchableOpacity>
-            </>
-          ) : (
-            <>
               <TouchableOpacity
-                style={tw`bg-green-600 px-5 py-3 rounded-full flex-1 mr-2`}
-                onPress={handleUpdateCourse}
+                onPress={handleDelete}
+                style={tw`bg-red-600 px-4 py-3 rounded-lg flex-1 ml-2`}
               >
-                <Text style={tw`text-white font-semibold text-center`}>
-                  Save
-                </Text>
+                <Text style={tw`text-white text-center font-bold`}>Delete</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                style={tw`bg-gray-500 px-5 py-3 rounded-full flex-1 ml-2`}
-                onPress={() => setEditing(false)}
-              >
-                <Text style={tw`text-white font-semibold text-center`}>
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
+            </View>
+          </>
+        )}
       </View>
+
+      {/* Back Button */}
+      {!isEditing && (
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={tw`mx-4 mt-2 bg-gray-700 p-3 rounded-full`}
+        >
+          <Text style={tw`text-white text-center font-semibold`}>
+            ← Back to Schedule
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Toast Container */}
+      <Toast />
     </ScrollView>
   );
 }
